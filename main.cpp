@@ -10,6 +10,23 @@ struct Instruction
     int cont;
 };
 
+float performance(string newfile, float tclock)
+{
+    ifstream inputFile(newfile);
+    string line;
+    int i = 0;
+
+    while (std::getline(inputFile, line))
+    {
+        ++i;
+    }
+    float cpi = (5.0 + 1 * (i - 1)) / static_cast<float>(i);
+    float clock = tclock;
+    float tcpu = float(i * cpi * clock);
+
+    return tcpu;
+}
+
 int main()
 {
     setlocale(LC_ALL, "Portuguese");
@@ -42,20 +59,18 @@ int main()
     cout << "\n\nQual o tempo de clock? Em nanosegundos\n";
     cin >> clock;
 
-    cout<< "\n\nQual técnica você deseja utilizar?\n1- Inserção de NOP\n2-Forwarding\n";
-    cin>>method;
+    cout << "\n\nQual técnica você deseja utilizar?\n1- Inserção de NOP\n2-Forwarding\n";
+    cin >> method;
 
     switch (method)
     {
     case 1:
-        /* code */
+        cout << performance("doc.txt", clock);
         break;
     case 2:
-        /* code */
+        cout << "2";
         break;
     default:
         break;
     }
-
-
 }
