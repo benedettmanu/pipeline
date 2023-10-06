@@ -53,16 +53,13 @@ void nop(string file) {
                     if (last_seven == B || last_seven == S) {
                         i += 32;
                     } else {
-                        bool addedNop = false;
                         string rd = segment.substr(20, 5);
 
                         if (!nextLine1.empty() && (nextLine1.substr(12, 5) == rd || nextLine1.substr(7, 5) == rd)) {
                             outputFile << nopCode << "\n";
                             outputFile << nopCode << "\n";
-                            addedNop = true;
                         }
-                        if (!addedNop && !nextLine2.empty() &&
-                            (nextLine2.substr(12, 5) == rd || nextLine2.substr(7, 5) == rd)) {
+                        if (!nextLine2.empty() && (nextLine2.substr(12, 5) == rd || nextLine2.substr(7, 5) == rd)) {
                             outputFile << nopCode << "\n";
                         }
 
@@ -129,6 +126,36 @@ void forwarding(string file) {
     outputFile.close();
 }
 
+// função que verifica se o opcode é "jal" ou representa um laço de repetição
+bool isJalOrLoop(string instruction) {
+    string opcode = instruction.substr(0, 7); // Extrai os 7 bits do opcode
+
+    // verifica se o opcode é igual a "jal" (opcode 1101111) ou se representa um laço de repetição
+    return (opcode == J) || (opcode == B && instruction[25] == '1');
+}
+
+// FUNÇÕES NOVAS: EXERCICIO 3  -----------------------------------------------------------
+void reorderInstructions(const string &inputFile, const string &outputFile) {
+    string line;
+    ifstream input(inputFile);
+    ofstream output(outputFile);
+
+    while (getline(input, line)) {
+        if (isJalOrLoop(line)) {
+            // Se a linha contiver "jal" ou representar um laço, mantenha-a intacta
+            output << line << endl;
+        } else {
+            // substituindo NOPs por instruções "ADDI R1, R2, 0"
+            if (line == nopCode) {
+                output << "00110010000010000000000000000000" << endl; // Substituir NOP por ADDI R1, R2, 0
+            }
+        }
+    }
+    input.close();
+    output.close();
+}
+
+
 int main() {
     setlocale(LC_ALL, "Portuguese");
     ifstream inputFile("doc.txt");
@@ -144,33 +171,29 @@ int main() {
     int method;
 
     cout << "\nMÉTODOS PIPELINE";
-
     cout << "\nCertifique-se de substituir o conteúdo do arquivo doc.txt no diretório pelo seu dump file!";
+
     cout << "\n\nQual o tempo de clock? Em nanosegundos\n";
     cin >> clock;
 
-    cout
-            << "\n\nQual técnica você deseja utilizar?\n1- Cálculo de desempenho | Sem alterações\n2- Inserção de NOP\n3- Forwarding\n0- Sair\n";
+    cout << "\n\nQual técnica você deseja utilizar?\n1- Inserção de NOP\n2-Forwarding\n3- Reordenar instruções com Forwarding\n";
     cin >> method;
 
     switch (method) {
         case 1:
-            cout << endl << "O desempenho foi de "
-                 << performance("doc.txt", clock) << " nanosegundos.";
+            nop("doc.txt");
+            cout << endl
+                 << performance("nop.txt", clock);
             break;
         case 2:
-            nop("doc.txt");
-            cout << endl << "O desempenho foi de "
-                 << performance("nop.txt", clock) << " nanosegundos.";
+            forwarding("doc.txt");
+            cout << endl
+                 << performance("forwarding.txt", clock);
             break;
         case 3:
-            forwarding("doc.txt");
-            cout << endl << "O desempenho foi de "
-                 << performance("forwarding.txt", clock) << " nanosegundos.";
-            break;
+            reorderInstructions("forwarding.txt", "reordered_forwarding.txt");
+            cout << endl << performance("reordered_forwarding.txt", clock);
         default:
             break;
     }
-
-    return 0;
 }
