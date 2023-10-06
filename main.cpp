@@ -4,11 +4,15 @@
 
 using namespace std;
 
-struct Instruction
-{
-    const string opcode;
-    int cont;
-};
+const string nopCode = "00000000000000000000000000010011";
+
+const string U = "0110111";
+const string J = "1101111";
+const string B = "1100011";
+const string L = "0000011";
+const string S = "0100011";
+const string I = "0010011";
+const string R = "0110011";
 
 float performance(string newfile, float tclock)
 {
@@ -16,7 +20,7 @@ float performance(string newfile, float tclock)
     string line;
     int i = 0;
 
-    while (std::getline(inputFile, line))
+    while (getline(inputFile, line))
     {
         ++i;
     }
@@ -25,6 +29,128 @@ float performance(string newfile, float tclock)
     float tcpu = float(i * cpi * clock);
 
     return tcpu;
+}
+
+void nop(string file)
+{
+    ifstream inputFile(file);
+    ofstream outputFile("nop.txt");
+    string line;
+    string nextLine1, nextLine2;
+
+    if (getline(inputFile, nextLine1) && getline(inputFile, nextLine2))
+    {
+        do
+        {
+            line = nextLine1;
+            nextLine1 = nextLine2;
+            if (!getline(inputFile, nextLine2))
+            {
+                nextLine2.clear();
+            }
+            outputFile << line << "\n";
+
+            int length = line.length();
+            for (int i = 0; i < length;)
+            {
+                if (i + 32 <= length)
+                {
+                    string segment = line.substr(i, 32);
+                    string last_seven = segment.substr(25, 7);
+
+                    if (last_seven == B || last_seven == S)
+                    {
+                        i += 32;
+                    }
+                    else
+                    {
+                        string rd = segment.substr(20, 5);
+
+                        if (!nextLine1.empty() && (nextLine1.substr(12, 5) == rd || nextLine1.substr(7, 5) == rd))
+                        {
+                            outputFile << nopCode << "\n";
+                            outputFile << nopCode << "\n";
+                        }
+                        if (!nextLine2.empty() && (nextLine2.substr(12, 5) == rd || nextLine2.substr(7, 5) == rd))
+                        {
+                            outputFile << nopCode << "\n";
+                        }
+
+                        i += 32;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+        } while (!nextLine1.empty());
+    }
+
+    inputFile.close();
+    outputFile.close();
+}
+
+void forwarding(string file)
+{
+    ifstream inputFile(file);
+    ofstream outputFile("forwarding.txt");
+    string line;
+    string nextLine1, nextLine2;
+
+    if (getline(inputFile, nextLine1) && getline(inputFile, nextLine2))
+    {
+        do
+        {
+            line = nextLine1;
+            nextLine1 = nextLine2;
+            if (!getline(inputFile, nextLine2))
+            {
+                nextLine2.clear();
+            }
+            outputFile << line << "\n";
+
+            int length = line.length();
+            for (int i = 0; i < length;)
+            {
+                if (i + 32 <= length)
+                {
+                    string segment = line.substr(i, 32);
+                    string last_seven = segment.substr(25, 7);
+
+                    if (last_seven == L)
+                    {
+                        string rd = segment.substr(20, 5);
+                        bool addedNop = false;
+
+                        if (!nextLine1.empty() && (nextLine1.substr(12, 5) == rd || nextLine1.substr(7, 5) == rd))
+                        {
+                            outputFile << nopCode << "\n";
+                            outputFile << nopCode << "\n";
+                            addedNop = true;
+                        }
+                        if (!addedNop && !nextLine2.empty() && (nextLine2.substr(12, 5) == rd || nextLine2.substr(7, 5) == rd))
+                        {
+                            outputFile << nopCode << "\n";
+                        }
+
+                        i += 32;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+        } while (!nextLine1.empty());
+    }
+
+    inputFile.close();
+    outputFile.close();
 }
 
 int main()
@@ -41,17 +167,7 @@ int main()
     }
 
     float clock = 0;
-    string line;
-    int instruction_cont = 0;
     int method;
-
-    Instruction U = {"0110111", 0};
-    Instruction J = {"1101111", 0};
-    Instruction B = {"1100011", 0};
-    Instruction L = {"0000011", 0};
-    Instruction S = {"0100011", 0};
-    Instruction I = {"0010011", 0};
-    Instruction R = {"0110011", 0};
 
     cout << "\nMÉTODOS PIPELINE";
     cout << "\nCertifique-se de substituir o conteúdo do arquivo doc.txt no diretório pelo seu dump file!";
@@ -65,10 +181,14 @@ int main()
     switch (method)
     {
     case 1:
-        cout << performance("doc.txt", clock);
+        nop("doc.txt");
+        cout << endl
+             << performance("nop.txt", clock);
         break;
     case 2:
-        cout << "2";
+        forwarding("doc.txt");
+        cout << endl
+             << performance("forwarding.txt", clock);
         break;
     default:
         break;
